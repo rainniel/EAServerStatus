@@ -32,6 +32,8 @@ namespace EAServerStatus.Controls
 
         public void AddOnline(int? online)
         {
+            if (onlineList.Count == 0) onlineList.Add(online);
+
             onlineList.Add(online);
             if (onlineList.Count > MaxRecord)
             {
@@ -47,9 +49,8 @@ namespace EAServerStatus.Controls
         private void UpdateChart()
         {
             var plotModel = new PlotModel();
-            var series = new LineSeries
+            var series = new AreaSeries
             {
-                MarkerType = MarkerType.Circle,
                 TrackerFormatString = "{4:###,###}"
             };
 
@@ -58,18 +59,32 @@ namespace EAServerStatus.Controls
 
             foreach (int? online in onlineList)
             {
+                var x = MaxRecord - (onlineList.Count - loop);
+
                 if (online == null)
                 {
-                    series.Points.Add(new DataPoint(MaxRecord - (onlineList.Count - loop), double.NaN));
+                    series.Points.Add(new DataPoint(x, 0));
                 }
                 else
                 {
+                    if ((loop == 1 && loop < onlineList.Count && onlineList[loop] != null)
+                        || (loop > 1 && onlineList[loop - 2] == null))
+                    {
+                        series.Points.Add(new DataPoint(x, 0));
+                    }
+
                     if (loop == 1
                         || loop == onlineList.Count
                         || previousOnline != online
-                        || loop < onlineList.Count && onlineList[loop] == null)
+                        || loop < onlineList.Count && onlineList[loop] == null
+                        || loop < onlineList.Count && onlineList[loop] != online)
                     {
-                        series.Points.Add(new DataPoint(MaxRecord - (onlineList.Count - loop), (double)online));
+                        series.Points.Add(new DataPoint(x, (double)online));
+                    }
+
+                    if (loop < onlineList.Count && onlineList[loop] == null)
+                    {
+                        series.Points.Add(new DataPoint(x, 0));
                     }
                 }
 

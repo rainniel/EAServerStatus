@@ -34,7 +34,7 @@ namespace EAServerStatus.Utils
             }
         }
 
-        public static async Task<ServerStatus> GetOnline()
+        public static async Task<ServerStatus> GetServerStatus()
         {
             return await Task.Run(() =>
             {
@@ -57,18 +57,14 @@ namespace EAServerStatus.Utils
                 {
                     string trimmedLine = line.Trim();
 
-                    if (trimmedLine.StartsWith("Status:ONLINE", StringComparison.OrdinalIgnoreCase))
+                    if (trimmedLine.Equals("<title>The network path was not found</title>", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new ServerStatus(Status.ServerError);
+                    }
+                    else if (trimmedLine.StartsWith("Status:ONLINE", StringComparison.OrdinalIgnoreCase))
                     {
                         online = trimmedLine.GetSplitIndex(' ', 1).ToInt();
-
-                        if (online > 0)
-                        {
-                            status = Status.Online;
-                        }
-                        else
-                        {
-                            status = Status.ZeroPlayer;
-                        }
+                        status = online > 0 ? Status.Online : Status.ZeroPlayer;
                     }
                     else if (trimmedLine.StartsWith("(Elyos:", StringComparison.OrdinalIgnoreCase))
                     {
@@ -88,7 +84,7 @@ namespace EAServerStatus.Utils
                     }
 
                     loop++;
-                    if (loop >= MAX_READLINE) break;
+                    if (loop >= MAX_READLINE) return new ServerStatus(Status.DataError);
                 }
 
                 return new ServerStatus(online, elyos, asmo, status);

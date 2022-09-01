@@ -33,10 +33,5 @@ namespace EAServerStatus.Models
         {
             Show(title, message, ToolTipIcon.Warning);
         }
-
-        public void ShowError(string title, string message = "")
-        {
-            Show(title, message, ToolTipIcon.Error);
-        }
     }
 }

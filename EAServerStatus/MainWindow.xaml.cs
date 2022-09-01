@@ -36,7 +36,7 @@ namespace EAServerStatus
 
         public async void UpdateOnline()
         {
-            var serverStatus = await EAWebClient.GetOnline();
+            var serverStatus = await EAWebClient.GetServerStatus();
 
             string statusText = "";
             int? onlineCount = null;
@@ -54,8 +54,14 @@ namespace EAServerStatus
                     statusText = "ZERO ONLINE";
                     onlineCount = 0;
                     break;
+                case Status.DataError:
+                    statusText = "DATA ERROR";
+                    break;
+                case Status.ServerError:
+                    statusText = "SERVER ERROR";
+                    break;
                 case Status.RequestError:
-                    statusText = "ERROR RETRIEVING DATA";
+                    statusText = "REQUEST ERROR";
                     break;
             }
 
@@ -79,9 +85,6 @@ namespace EAServerStatus
                             case Status.ZeroPlayer:
                                 notification.ShowWarning("Server is online but with 0 player.");
                                 break;
-                            case Status.RequestError:
-                                notification.ShowError("Error retrieving data.");
-                                break;
                         }
                     }
                     else if (serverStatus.Status == Status.Online && previousOnline > serverStatus.Online)
@@ -95,8 +98,12 @@ namespace EAServerStatus
                 }
             }));
 
-            status = serverStatus.Status;
-            previousOnline = serverStatus.Online;
+
+            if (!serverStatus.IsError)
+            {
+                status = serverStatus.Status;
+                previousOnline = serverStatus.Online;
+            }
         }
     }
 }
