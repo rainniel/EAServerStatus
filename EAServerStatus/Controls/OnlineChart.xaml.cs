@@ -1,6 +1,7 @@
 ﻿using OxyPlot;
 using OxyPlot.Axes;
 using OxyPlot.Series;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Controls;
@@ -10,9 +11,10 @@ namespace EAServerStatus.Controls
     public partial class OnlineChart : UserControl
     {
         private const int MaxRecord = 60;
+        private const double CorrectionRangePercentage = 0.3;
 
-        private readonly List<int?> onlineList = new List<int?>();
-        private int maxOnline;
+        private readonly List<int?> _onlineList = new List<int?>();
+        private int _maxOnline;
 
         public OnlineChart()
         {
@@ -32,18 +34,80 @@ namespace EAServerStatus.Controls
 
         public void AddOnline(int? online)
         {
-            if (onlineList.Count == 0) onlineList.Add(online);
+            if (_onlineList.Count == 0) _onlineList.Add(online);
 
-            onlineList.Add(online);
-            if (onlineList.Count > MaxRecord)
+            _onlineList.Add(online);
+            if (_onlineList.Count > MaxRecord)
             {
-                onlineList.RemoveAt(0);
+                _onlineList.RemoveAt(0);
             }
 
-            var max = onlineList.Max();
-            maxOnline = max == null ? 0 : (int)max;
+            CorrectData();
+
+            var max = _onlineList.Max();
+            _maxOnline = max == null ? 0 : (int)max;
 
             UpdateChart();
+        }
+
+        private void CorrectData()
+        {
+            if (_onlineList.Count >= 3)
+            {
+                bool tryToCorrect = false;
+                var nullStartIndex = 0;
+
+                for (var i = 0; i < _onlineList.Count; i++)
+                {
+                    if (tryToCorrect)
+                    {
+                        if (_onlineList[i] != null)
+                        {
+                            var lastValue = (int)_onlineList[nullStartIndex - 1];
+                            var correctionOffset = (int)Math.Round((lastValue * CorrectionRangePercentage) / 2);
+
+                            if (_onlineList[i] >= (lastValue - correctionOffset)
+                           && _onlineList[i] <= (lastValue + correctionOffset))
+                            {
+                                var nullGaps = (i - nullStartIndex) + 1;
+                                var difference = lastValue - (int)_onlineList[i];
+                                var increment = Math.Abs(difference / nullGaps);
+                                var correctionValue = lastValue;
+
+                                if (_onlineList[i] >= lastValue)
+                                {
+                                    for (var i2 = nullStartIndex; i2 < i; i2++)
+                                    {
+                                        correctionValue += increment;
+                                        _onlineList[i2] = correctionValue;
+                                    }
+                                }
+                                else
+                                {
+                                    for (var i2 = nullStartIndex; i2 < i; i2++)
+                                    {
+                                        correctionValue -= increment;
+                                        _onlineList[i2] = correctionValue;
+                                    }
+                                }
+                            }
+
+                            tryToCorrect = false;
+                        }
+                    }
+                    else
+                    {
+                        if (i > 0 && i < _onlineList.Count)
+                        {
+                            if (_onlineList[i - 1] != null && _onlineList[i] == null)
+                            {
+                                tryToCorrect = true;
+                                nullStartIndex = i;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void UpdateChart()
@@ -55,11 +119,11 @@ namespace EAServerStatus.Controls
             };
 
             int? previousOnline = null;
-            int loop = 1;
+            var loop = 1;
 
-            foreach (int? online in onlineList)
+            foreach (int? online in _onlineList)
             {
-                var x = MaxRecord - (onlineList.Count - loop);
+                var x = MaxRecord - (_onlineList.Count - loop);
 
                 if (online == null)
                 {
@@ -67,22 +131,22 @@ namespace EAServerStatus.Controls
                 }
                 else
                 {
-                    if ((loop == 1 && loop < onlineList.Count && onlineList[loop] != null)
-                        || (loop > 1 && onlineList[loop - 2] == null))
+                    if ((loop == 1 && loop < _onlineList.Count && _onlineList[loop] != null)
+                        || (loop > 1 && _onlineList[loop - 2] == null))
                     {
                         series.Points.Add(new DataPoint(x, 0));
                     }
 
                     if (loop == 1
-                        || loop == onlineList.Count
+                        || loop == _onlineList.Count
                         || previousOnline != online
-                        || loop < onlineList.Count && onlineList[loop] == null
-                        || loop < onlineList.Count && onlineList[loop] != online)
+                        || loop < _onlineList.Count && _onlineList[loop] == null
+                        || loop < _onlineList.Count && _onlineList[loop] != online)
                     {
                         series.Points.Add(new DataPoint(x, (double)online));
                     }
 
-                    if (loop < onlineList.Count && onlineList[loop] == null)
+                    if (loop < _onlineList.Count && _onlineList[loop] == null)
                     {
                         series.Points.Add(new DataPoint(x, 0));
                     }
@@ -92,14 +156,9 @@ namespace EAServerStatus.Controls
                 loop++;
             }
 
-            var stringFormat = "###";
+            var stringFormat = _maxOnline < 1000 ? "###" : "#,K";
 
-            if (maxOnline > 999)
-            {
-                stringFormat = "#,K";
-            }
-
-            var yMax = maxOnline + (maxOnline * 0.1);
+            var yMax = _maxOnline + (_maxOnline * 0.1);
             if (yMax < 10) yMax = 10;
 
             var yAxis = new LinearAxis

@@ -9,24 +9,24 @@ namespace EAServerStatus
 {
     public partial class MainWindow : Window
     {
-        private readonly Notification notification = new Notification();
-        private readonly Timer timer = new Timer();
-
-        private Status status = Status.Null;
-        private int previousOnline;
-
         private const string NumberFormat = "###,###";
+
+        private readonly Notification _notification = new Notification();
+        private readonly Timer _timer = new Timer();
+
+        private Status _status = Status.Null;
+        private int _previousOnline;
 
         public MainWindow()
         {
             InitializeComponent();
             WindowTitle.Initialize(this, WindowTitleStyle.NormalWithPin);
 
-            timer.Elapsed += new ElapsedEventHandler(Timer_ElapsedEvent);
-            timer.Interval = 5000;
+            _timer.Elapsed += new ElapsedEventHandler(Timer_ElapsedEvent);
+            _timer.Interval = 5000;
 
             UpdateOnline();
-            timer.Enabled = true;
+            _timer.Enabled = true;
         }
 
         private void Timer_ElapsedEvent(object source, ElapsedEventArgs e)
@@ -38,7 +38,7 @@ namespace EAServerStatus
         {
             var serverStatus = await EAWebClient.GetServerStatus();
 
-            string statusText = "";
+            var statusText = "";
             int? onlineCount = null;
 
             switch (serverStatus.Status)
@@ -47,12 +47,11 @@ namespace EAServerStatus
                     statusText = string.Format("Online: {0} (Elyos: {1}%, Asmodian: {2}%)", serverStatus.Online.ToString(NumberFormat), serverStatus.ElyosPercentage, serverStatus.AsmoPercentage);
                     onlineCount = serverStatus.Online;
                     break;
-                case Status.Offline:
-                    statusText = "SERVER IS OFFLINE";
-                    break;
                 case Status.ZeroPlayer:
                     statusText = "ZERO ONLINE";
-                    onlineCount = 0;
+                    break;
+                case Status.Maintenance:
+                    statusText = "SERVER MAINTENANCE";
                     break;
                 case Status.DataError:
                     statusText = "DATA ERROR";
@@ -70,39 +69,38 @@ namespace EAServerStatus
                 TxtStatus.Text = statusText;
                 ChartOnline.AddOnline(onlineCount);
 
-                if (status != Status.Null)
+                if (_status != Status.Null)
                 {
-                    if (status != serverStatus.Status)
+                    if (_status != serverStatus.Status)
                     {
                         switch (serverStatus.Status)
                         {
                             case Status.Online:
-                                notification.ShowInfo("Server is online.", statusText);
-                                break;
-                            case Status.Offline:
-                                notification.ShowWarning("Server is offline.");
+                                _notification.ShowInfo("Server is online.", statusText);
                                 break;
                             case Status.ZeroPlayer:
-                                notification.ShowWarning("Server is online but with 0 player.");
+                                _notification.ShowWarning("Server is online but with 0 player.");
+                                break;
+                            case Status.Maintenance:
+                                _notification.ShowWarning("Server is under maintenance.");
                                 break;
                         }
                     }
-                    else if (serverStatus.Status == Status.Online && previousOnline > serverStatus.Online)
+                    else if (serverStatus.Status == Status.Online && _previousOnline > serverStatus.Online)
                     {
-                        var difference = previousOnline - serverStatus.Online;
+                        var difference = _previousOnline - serverStatus.Online;
                         if (difference >= 50)
                         {
-                            notification.ShowWarning("Mass disconnect detected.", string.Format("{0} players has been disconnected.", difference.ToString(NumberFormat)));
+                            _notification.ShowWarning("Mass disconnect detected.", string.Format("{0} players has been disconnected.", difference.ToString(NumberFormat)));
                         }
                     }
                 }
             }));
 
-
             if (!serverStatus.IsError)
             {
-                status = serverStatus.Status;
-                previousOnline = serverStatus.Online;
+                _status = serverStatus.Status;
+                _previousOnline = serverStatus.Online;
             }
         }
     }

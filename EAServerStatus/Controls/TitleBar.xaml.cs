@@ -7,13 +7,13 @@ namespace EAServerStatus.Controls
 {
     public partial class TitleBar : UserControl
     {
-        private Window parentWindow;
-        private bool canMaximize;
-
         private const string PinMessage = "Pin window on top of the screen";
         private const string UnpinMessage = "Un-pin window on top of the screen";
         private const string MaximizeMessage = "Maximize";
         private const string RestoreMessage = "Restore";
+
+        private Window _parentWindow;
+        private bool _canMaximize;
 
         public TitleBar()
         {
@@ -26,7 +26,7 @@ namespace EAServerStatus.Controls
         {
             if (Movable && e.ChangedButton == MouseButton.Left)
             {
-                try { parentWindow.DragMove(); }
+                try { _parentWindow.DragMove(); }
                 catch { }
             }
         }
@@ -38,35 +38,35 @@ namespace EAServerStatus.Controls
 
         private void BtnPin_Click(object sender, RoutedEventArgs e)
         {
-            PinWindow(!parentWindow.Topmost);
+            PinWindow(!_parentWindow.Topmost);
         }
 
         private void BtnMinimize_Click(object sender, RoutedEventArgs e)
         {
-            parentWindow.WindowState = WindowState.Minimized;
+            _parentWindow.WindowState = WindowState.Minimized;
         }
 
         private void BtnMaximize_Click(object sender, RoutedEventArgs e)
         {
-            if (!canMaximize) return;
+            if (!_canMaximize) return;
 
-            if (parentWindow.WindowState == WindowState.Normal)
+            if (_parentWindow.WindowState == WindowState.Normal)
             {
                 TbkMaximize.Text = RestoreMessage;
-                parentWindow.ResizeMode = ResizeMode.NoResize;
-                parentWindow.WindowState = WindowState.Maximized;
+                _parentWindow.ResizeMode = ResizeMode.NoResize;
+                _parentWindow.WindowState = WindowState.Maximized;
             }
             else
             {
                 TbkMaximize.Text = MaximizeMessage;
-                parentWindow.ResizeMode = ResizeMode.CanResize;
-                parentWindow.WindowState = WindowState.Normal;
+                _parentWindow.ResizeMode = ResizeMode.CanResize;
+                _parentWindow.WindowState = WindowState.Normal;
             }
         }
 
         private void BtnClose_Click(object sender, RoutedEventArgs e)
         {
-            parentWindow.Close();
+            _parentWindow.Close();
         }
 
         #endregion
@@ -81,13 +81,13 @@ namespace EAServerStatus.Controls
 
         public bool Pinned
         {
-            get => parentWindow.Topmost = true;
+            get => _parentWindow.Topmost = true;
             set => PinWindow(value);
         }
 
         public void TogglePin()
         {
-            PinWindow(!parentWindow.Topmost);
+            PinWindow(!_parentWindow.Topmost);
         }
 
         public bool Movable { get; set; } = true;
@@ -98,8 +98,8 @@ namespace EAServerStatus.Controls
 
         public void Initialize(Window window, WindowTitleStyle style)
         {
-            parentWindow = window;
-            parentWindow.MouseDown += Window_MouseDown;
+            _parentWindow = window;
+            _parentWindow.MouseDown += Window_MouseDown;
             SetStyle(style);
         }
 
@@ -112,7 +112,7 @@ namespace EAServerStatus.Controls
                     BtnMinimize.Visibility = Visibility.Visible;
                     BtnMaximize.Visibility = Visibility.Visible;
                     BtnClose.Visibility = Visibility.Visible;
-                    canMaximize = true;
+                    _canMaximize = true;
                     break;
 
                 case WindowTitleStyle.NormalWithPin:
@@ -120,7 +120,7 @@ namespace EAServerStatus.Controls
                     BtnMinimize.Visibility = Visibility.Visible;
                     BtnMaximize.Visibility = Visibility.Visible;
                     BtnClose.Visibility = Visibility.Visible;
-                    canMaximize = true;
+                    _canMaximize = true;
                     break;
 
                 case WindowTitleStyle.Dialog:
@@ -139,14 +139,14 @@ namespace EAServerStatus.Controls
                 TbkPin.Text = UnpinMessage;
                 PthPin.Data = (Geometry)FindResource("UnpinGeometry");
                 PthPin.Margin = new Thickness(2, 3, 3, 3);
-                parentWindow.Topmost = true;
+                _parentWindow.Topmost = true;
             }
             else
             {
                 TbkPin.Text = PinMessage;
                 PthPin.Data = (Geometry)FindResource("PinGeometry");
                 PthPin.Margin = new Thickness(4, 3, 4, 3);
-                parentWindow.Topmost = false;
+                _parentWindow.Topmost = false;
             }
         }
 

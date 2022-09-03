@@ -7,20 +7,16 @@ namespace EAServerStatus.Utils
 {
     public static class EAWebClient
     {
-        private static readonly HttpClient Client;
-        private const string URL = "https://www.euroaion.com/en-US";
-        private const int MAX_READLINE = 110;
+        private const string Url = "https://www.euroaion.com/en-US";
+        private const int MaxReadLine = 110;
 
-        static EAWebClient()
-        {
-            Client = new HttpClient();
-        }
+        private static readonly HttpClient _client = new HttpClient();
 
         private static string GetPageSource()
         {
             try
             {
-                using (HttpResponseMessage response = Client.GetAsync(URL).Result)
+                using (HttpResponseMessage response = _client.GetAsync(Url).Result)
                 {
                     using (HttpContent content = response.Content)
                     {
@@ -45,35 +41,30 @@ namespace EAServerStatus.Utils
                     return new ServerStatus(Status.RequestError);
                 }
 
-                int online = 0;
-                int elyos = 0;
-                int asmo = 0;
-                Status status = Status.Offline;
+                var online = 0;
+                var elyos = 0;
+                var asmo = 0;
+                Status status = Status.Null;
 
-                string[] lines = pageSource.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                var lines = pageSource.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
 
-                int loop = 0;
-                foreach (string line in lines)
+                for (var i = 0; i < lines.Length; i++)
                 {
-                    string trimmedLine = line.Trim();
+                    var line = lines[i].Trim();
 
-                    if (trimmedLine.Equals("<title>The network path was not found</title>", StringComparison.OrdinalIgnoreCase))
+                    if (online == 0 && line.StartsWith("Status:ONLINE", StringComparison.OrdinalIgnoreCase))
                     {
-                        return new ServerStatus(Status.ServerError);
-                    }
-                    else if (trimmedLine.StartsWith("Status:ONLINE", StringComparison.OrdinalIgnoreCase))
-                    {
-                        online = trimmedLine.GetSplitIndex(' ', 1).ToInt();
+                        online = line.GetSplitIndex(' ', 1).ToInt();
                         status = online > 0 ? Status.Online : Status.ZeroPlayer;
                     }
-                    else if (trimmedLine.StartsWith("(Elyos:", StringComparison.OrdinalIgnoreCase))
+                    else if (line.StartsWith("(Elyos:", StringComparison.OrdinalIgnoreCase))
                     {
-                        trimmedLine = trimmedLine.Replace(" ", "");
-                        trimmedLine = trimmedLine.Replace("(", "");
-                        trimmedLine = trimmedLine.Replace(")", "");
-                        trimmedLine = trimmedLine.Replace("%", "");
+                        line = line.Replace(" ", "");
+                        line = line.Replace("(", "");
+                        line = line.Replace(")", "");
+                        line = line.Replace("%", "");
 
-                        var percentage = trimmedLine.Split(',');
+                        var percentage = line.Split(',');
                         if (percentage.Length == 2)
                         {
                             elyos = percentage[0].GetSplitIndex(':', 1).ToInt();
@@ -82,9 +73,16 @@ namespace EAServerStatus.Utils
 
                         break;
                     }
+                    else if (line.Equals("<i class=\"fa fa-dot-circle-o\" style=\"color: red\">", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new ServerStatus(Status.Maintenance);
+                    }
+                    else if (line.Equals("<title>The network path was not found</title>", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new ServerStatus(Status.ServerError);
+                    }
 
-                    loop++;
-                    if (loop >= MAX_READLINE) return new ServerStatus(Status.DataError);
+                    if (i >= MaxReadLine) return new ServerStatus(Status.DataError);
                 }
 
                 return new ServerStatus(online, elyos, asmo, status);
