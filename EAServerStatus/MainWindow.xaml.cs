@@ -56,8 +56,8 @@ namespace EAServerStatus
                 case Status.DataError:
                     statusText = "DATA ERROR";
                     break;
-                case Status.ServerError:
-                    statusText = "SERVER ERROR";
+                case Status.WebsiteError:
+                    statusText = "WEBSITE ERROR";
                     break;
                 case Status.RequestError:
                     statusText = "REQUEST ERROR";
@@ -79,7 +79,7 @@ namespace EAServerStatus
                                 _notification.ShowInfo("Server is online.", statusText);
                                 break;
                             case Status.ZeroPlayer:
-                                _notification.ShowWarning("Server is online but with 0 player.");
+                                _notification.ShowWarning("Server is online with 0 player.");
                                 break;
                             case Status.Maintenance:
                                 _notification.ShowWarning("Server is under maintenance.");

@@ -77,9 +77,9 @@ namespace EAServerStatus.Utils
                     {
                         return new ServerStatus(Status.Maintenance);
                     }
-                    else if (line.Equals("<title>The network path was not found</title>", StringComparison.OrdinalIgnoreCase))
+                    else if (line.StartsWith("<span><H1>Server Error in '", StringComparison.OrdinalIgnoreCase))
                     {
-                        return new ServerStatus(Status.ServerError);
+                        return new ServerStatus(Status.WebsiteError);
                     }
 
                     if (i >= MaxReadLine) return new ServerStatus(Status.DataError);

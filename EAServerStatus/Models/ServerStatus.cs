@@ -14,7 +14,7 @@
             ElyosPercentage = elyos;
             AsmoPercentage = asmodian;
             Status = status;
-            IsError = status == Status.DataError || status == Status.ServerError || status == Status.RequestError;
+            IsError = status == Status.DataError || status == Status.WebsiteError || status == Status.RequestError;
         }
 
         public ServerStatus(Status status) : this(0, 0, 0, status) { }
@@ -27,7 +27,7 @@
         ZeroPlayer,
         Maintenance,
         DataError,
-        ServerError,
+        WebsiteError,
         RequestError
     }
 }
